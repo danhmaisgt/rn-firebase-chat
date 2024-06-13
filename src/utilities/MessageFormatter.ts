@@ -24,41 +24,16 @@ const formatMessageData = (message: MessageProps, userInfo: IUserInfo) => {
 };
 
 const formatEncryptedMessageData = async (
-  message: MessageProps,
-  userName: string
+  text: string,
+  conversationId: string
 ) => {
-  return generateKey('Arnold', 'salt', 5000, 256).then((key) => {
-    return decryptData(message.text, key)
+  return generateKey(conversationId, 'salt', 5000, 256).then((key) => {
+    return decryptData(text, key)
       .then((decryptedMessage) => {
-        return {
-          _id: message.id,
-          text: decryptedMessage ? decryptedMessage : message.text,
-          user: {
-            _id: message.senderId,
-            name: userName,
-            avatar:
-              'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a7/React-icon.svg/1200px-React-icon.svg.png',
-          },
-          senderId: message.senderId,
-          readBy: message.readBy,
-          id: message.id,
-        };
+        return decryptedMessage || text;
       })
       .catch(() => {
-        return {
-          _id: message.id,
-          // if fail to decrypt, return the original text
-          text: message.text,
-          user: {
-            _id: message.senderId,
-            name: userName,
-            avatar:
-              'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a7/React-icon.svg/1200px-React-icon.svg.png',
-          },
-          senderId: message.senderId,
-          readBy: message.readBy,
-          id: message.id,
-        };
+        return text;
       });
   });
 };
@@ -70,7 +45,7 @@ const formatSendMessage = (
   readBy: {
     [userId]: true,
   },
-  status: MessageStatus.sent,
+  status: MessageStatus.received,
   senderId: userId,
   createdAt: Date.now(),
   text: message,

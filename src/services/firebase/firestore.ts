@@ -3,6 +3,7 @@ import firestore, {
 } from '@react-native-firebase/firestore';
 import {
   encryptData,
+  formatEncryptedMessageData,
   formatLatestMessage,
   formatMessageData,
   formatSendMessage,
@@ -61,16 +62,11 @@ export class FirestoreServices {
     return FirestoreServices.instance;
   };
 
-  configuration = ({ userInfo, enableEncrypt, encryptKey }: FirestoreProps) => {
+  configuration = ({ userInfo, enableEncrypt }: FirestoreProps) => {
     if (userInfo) {
       this.userInfo = userInfo;
     }
-    if (enableEncrypt && encryptKey) {
-      this.enableEncrypt = enableEncrypt;
-      generateKey(encryptKey, 'salt', 5000, 256).then((res) => {
-        this.encryptKey = res;
-      });
-    }
+    this.enableEncrypt = enableEncrypt;
   };
 
   setConversationInfo = (
@@ -81,6 +77,12 @@ export class FirestoreServices {
     this.conversationId = conversationId;
     this.memberIds = [this.userId, ...memberIds];
     this.partners = partners.reduce((a, b) => ({ ...a, [b.id]: b }), {});
+
+    if (this.enableEncrypt && this.conversationId) {
+      generateKey(this.conversationId, 'salt', 5000, 256).then((res) => {
+        this.encryptKey = res;
+      });
+    }
   };
   clearConversationInfo = () => {
     this.conversationId = null;
@@ -125,7 +127,7 @@ export class FirestoreServices {
 
     this.conversationId = conversationRef.id;
     this.memberIds = memberIds;
-    return { ...conversationData, id: conversationRef.id };
+    return { ...conversationData, id: conversationRef.id } as ConversationProps;
   };
 
   /**
@@ -225,14 +227,22 @@ export class FirestoreServices {
         .orderBy('createdAt', 'desc')
         .limit(maxPageSize)
         .get();
-      querySnapshot.forEach((doc) => {
+
+      for (const doc of querySnapshot.docs) {
         const data = { ...doc.data(), id: doc.id };
         const userInfo =
           data.senderId === this.userInfo?.id
             ? this.userInfo
             : (this.partners?.[doc.data().senderId] as IUserInfo);
-        listMessage.push(formatMessageData(data, userInfo));
-      });
+        const message = formatMessageData(data, userInfo);
+        if (this.enableEncrypt && this.conversationId) {
+          message.text = await formatEncryptedMessageData(
+            message.text,
+            this.conversationId
+          );
+        }
+        listMessage.push(message);
+      }
       if (listMessage.length > 0) {
         this.messageCursor = querySnapshot.docs[querySnapshot.docs.length - 1];
       }
@@ -255,14 +265,24 @@ export class FirestoreServices {
         .limit(maxPageSize)
         .startAfter(this.messageCursor)
         .get();
-      querySnapshot.forEach((doc) => {
+      for (const doc of querySnapshot.docs) {
         const data = { ...doc.data(), id: doc.id };
         const userInfo =
           data.senderId === this.userInfo?.id
             ? this.userInfo
             : (this.partners?.[doc.data().senderId] as IUserInfo);
-        listMessage.push(formatMessageData(data, userInfo));
-      });
+
+        const message = formatMessageData(data, userInfo);
+
+        if (this.enableEncrypt && this.conversationId) {
+          message.text = await formatEncryptedMessageData(
+            data.text,
+            this.conversationId
+          );
+        }
+
+        listMessage.push(message);
+      }
       if (listMessage.length > 0) {
         this.messageCursor = querySnapshot.docs[querySnapshot.docs.length - 1];
       }
@@ -275,13 +295,21 @@ export class FirestoreServices {
       .collection<MessageProps>(
         `${FireStoreCollection.conversations}/${this.conversationId}/${FireStoreCollection.messages}`
       )
-      .onSnapshot((snapshot) => {
+      .onSnapshot(async (snapshot) => {
         if (snapshot) {
-          snapshot.docChanges().forEach((change) => {
+          for (const change of snapshot.docChanges()) {
+            const message = change.doc.data();
+            message.id = change.doc.id;
             if (change.type === 'added') {
-              callBack({ ...change.doc.data(), id: change.doc.id });
+              if (this.enableEncrypt && this.conversationId) {
+                message.text = await formatEncryptedMessageData(
+                  message.text,
+                  this.conversationId
+                );
+              }
+              callBack(message);
             }
-          });
+          }
         }
       });
   };
@@ -357,13 +385,19 @@ export class FirestoreServices {
         )
         .orderBy('updatedAt', 'desc')
         .get()
-        .then((querySnapshot) => {
-          querySnapshot.forEach(function (doc) {
-            listChannels.push({
-              ...(doc.data() as ConversationProps),
-              id: doc.id,
-            });
-          });
+        .then(async (querySnapshot) => {
+          for (const doc of querySnapshot.docs) {
+            const message = doc.data() as ConversationProps;
+            message.id = doc.id;
+            if (!!message.latestMessage?.text && this.enableEncrypt) {
+              message.latestMessage.text =
+                (await formatEncryptedMessageData(
+                  message.latestMessage.text,
+                  message.id
+                )) ?? message.latestMessage.text;
+            }
+            listChannels.push(message);
+          }
           resolve(listChannels);
         })
     );
@@ -374,16 +408,25 @@ export class FirestoreServices {
       .collection(
         `${FireStoreCollection.users}/${this.userId}/${FireStoreCollection.conversations}`
       )
-      .onSnapshot(function (snapshot) {
+      .onSnapshot(async (snapshot) => {
         if (snapshot) {
-          snapshot.docChanges().forEach(function (change) {
+          for (const change of snapshot.docChanges()) {
+            const message = change.doc.data() as ConversationProps;
             if (change.type === 'modified') {
-              callback?.({
-                ...(change.doc.data() as ConversationProps),
-                id: change.doc.id,
-              });
+              message.id = change.doc.id;
+              if (
+                this.enableEncrypt &&
+                this.conversationId &&
+                !!message.latestMessage?.text
+              ) {
+                message.latestMessage.text = await formatEncryptedMessageData(
+                  message.latestMessage.text,
+                  this.conversationId
+                );
+              }
+              callback?.(message);
             }
-          });
+          }
         }
       });
   };
