@@ -7,10 +7,11 @@ import {
   formatLatestMessage,
   formatMessageData,
   formatSendMessage,
-  generateKey,
+  generateEncryptionKey,
 } from '../../utilities';
 import {
   ConversationProps,
+  EncryptionOptions,
   FireStoreCollection,
   type IUserInfo,
   type LatestMessageProps,
@@ -69,19 +70,19 @@ export class FirestoreServices {
     this.enableEncrypt = enableEncrypt;
   };
 
-  setConversationInfo = (
+  setConversationInfo = async (
     conversationId: string,
     memberIds: string[],
-    partners: IUserInfo[]
+    partners: IUserInfo[],
+    options?: EncryptionOptions
   ) => {
     this.conversationId = conversationId;
     this.memberIds = [this.userId, ...memberIds];
     this.partners = partners.reduce((a, b) => ({ ...a, [b.id]: b }), {});
 
     if (this.enableEncrypt && this.conversationId) {
-      generateKey(this.conversationId, 'salt', 5000, 256).then((res) => {
-        this.encryptKey = res;
-      });
+      const res = await generateEncryptionKey(this.conversationId, options);
+      this.encryptKey = res;
     }
   };
   clearConversationInfo = () => {
@@ -213,7 +214,7 @@ export class FirestoreServices {
     }
   };
 
-  getMessageHistory = (maxPageSize: number) => {
+  getMessageHistory = (maxPageSize: number, options?: EncryptionOptions) => {
     let listMessage: Awaited<MessageProps>[] = [];
     return new Promise<Array<MessageProps>>(async (resolve) => {
       if (!this.userInfo) {
@@ -238,7 +239,8 @@ export class FirestoreServices {
         if (this.enableEncrypt && this.conversationId) {
           message.text = await formatEncryptedMessageData(
             message.text,
-            this.conversationId
+            this.conversationId,
+            options
           );
         }
         listMessage.push(message);
@@ -250,7 +252,7 @@ export class FirestoreServices {
     });
   };
 
-  getMoreMessage = (maxPageSize: number) => {
+  getMoreMessage = (maxPageSize: number, options?: EncryptionOptions) => {
     let listMessage: Awaited<MessageProps>[] = [];
     return new Promise<Array<MessageProps>>(async (resolve) => {
       if (!this.userInfo || !this.messageCursor) {
@@ -277,7 +279,8 @@ export class FirestoreServices {
         if (this.enableEncrypt && this.conversationId) {
           message.text = await formatEncryptedMessageData(
             data.text,
-            this.conversationId
+            this.conversationId,
+            options
           );
         }
 
@@ -290,7 +293,10 @@ export class FirestoreServices {
     });
   };
 
-  receiveMessageListener = (callBack: (message: any) => void) => {
+  receiveMessageListener = (
+    callBack: (message: any) => void,
+    options?: EncryptionOptions
+  ) => {
     return firestore()
       .collection<MessageProps>(
         `${FireStoreCollection.conversations}/${this.conversationId}/${FireStoreCollection.messages}`
@@ -304,7 +310,8 @@ export class FirestoreServices {
               if (this.enableEncrypt && this.conversationId) {
                 message.text = await formatEncryptedMessageData(
                   message.text,
-                  this.conversationId
+                  this.conversationId,
+                  options
                 );
               }
               callBack(message);
@@ -376,7 +383,9 @@ export class FirestoreServices {
     });
   };
 
-  getListConversation = async (): Promise<ConversationProps[]> => {
+  getListConversation = async (
+    options?: EncryptionOptions
+  ): Promise<ConversationProps[]> => {
     const listChannels: ConversationProps[] = [];
     return new Promise((resolve) =>
       firestore()
@@ -393,7 +402,8 @@ export class FirestoreServices {
               message.latestMessage.text =
                 (await formatEncryptedMessageData(
                   message.latestMessage.text,
-                  message.id
+                  message.id,
+                  options
                 )) ?? message.latestMessage.text;
             }
             listChannels.push(message);
@@ -403,7 +413,10 @@ export class FirestoreServices {
     );
   };
 
-  listenConversationUpdate = (callback: (_: ConversationProps) => void) => {
+  listenConversationUpdate = (
+    callback: (_: ConversationProps) => void,
+    options?: EncryptionOptions
+  ) => {
     firestore()
       .collection(
         `${FireStoreCollection.users}/${this.userId}/${FireStoreCollection.conversations}`
@@ -421,7 +434,8 @@ export class FirestoreServices {
               ) {
                 message.latestMessage.text = await formatEncryptedMessageData(
                   message.latestMessage.text,
-                  this.conversationId
+                  this.conversationId,
+                  options
                 );
               }
               callback?.(message);

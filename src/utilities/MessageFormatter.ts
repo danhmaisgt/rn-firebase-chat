@@ -1,13 +1,14 @@
 /**
  * Created by NL on 6/1/23.
  */
-import { decryptData, generateKey } from './AESCrypto';
+import { encryptedMessageData } from './AESCrypto';
 import {
   type IUserInfo,
   type LatestMessageProps,
   type MessageProps,
   MessageStatus,
   type SendMessageProps,
+  type EncryptionOptions,
 } from '../interfaces';
 
 const formatMessageData = (message: MessageProps, userInfo: IUserInfo) => {
@@ -25,17 +26,10 @@ const formatMessageData = (message: MessageProps, userInfo: IUserInfo) => {
 
 const formatEncryptedMessageData = async (
   text: string,
-  conversationId: string
+  conversationId: string,
+  options: EncryptionOptions = {}
 ) => {
-  return generateKey(conversationId, 'salt', 5000, 256).then((key) => {
-    return decryptData(text, key)
-      .then((decryptedMessage) => {
-        return decryptedMessage || text;
-      })
-      .catch(() => {
-        return text;
-      });
-  });
+  return await encryptedMessageData(text, conversationId, options);
 };
 
 const formatSendMessage = (
@@ -45,7 +39,7 @@ const formatSendMessage = (
   readBy: {
     [userId]: true,
   },
-  status: MessageStatus.received,
+  status: MessageStatus.sent,
   senderId: userId,
   createdAt: Date.now(),
   text: message,
