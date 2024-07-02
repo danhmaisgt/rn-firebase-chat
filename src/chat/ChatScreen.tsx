@@ -22,6 +22,15 @@ import {
 import TypingIndicator from 'react-native-gifted-chat/lib/TypingIndicator';
 import { FirestoreServices } from '../services/firebase';
 import { useChatContext, useChatSelector } from '../hooks';
+
+import { formatMessageData } from '../utilities';
+import { getConversation } from '../reducer/selectors';
+import InputToolbar, { IInputToolbar } from './components/InputToolbar';
+import { CameraView, CameraViewRef } from '../chat_obs/components/CameraView';
+import SelectedBubbleModal from './components/SelectedBubbleModal';
+import FileAttachmentModal, {
+  FileAttachmentModalRef,
+} from './components/FileAttachmentModal';
 import type {
   ConversationProps,
   CustomConversationInfo,
@@ -35,6 +44,8 @@ import { CustomImageVideoBubble } from './components/CustomImageVideoBubble';
 import { CameraView, CameraViewRef } from '../chat_obs/components/CameraView';
 import SelectedImageModal from './components/SelectedImage';
 import { useCameraPermission } from 'react-native-vision-camera';
+import type { CustomImageVideoBubbleProps } from './components/bubble/CustomImageVideoBubble';
+import { CustomBubble } from './components/bubble';
 
 interface ChatScreenProps extends GiftedChatProps {
   style?: StyleProp<ViewStyle>;
@@ -48,6 +59,7 @@ interface ChatScreenProps extends GiftedChatProps {
   hasGallery?: boolean;
   onPressCamera?: () => void;
   customConversationInfo?: CustomConversationInfo;
+  customImageVideoBubbleProps: CustomImageVideoBubbleProps;
   sendMessageNotification?: () => void;
   timeoutSendNotification?: number;
 }
@@ -62,6 +74,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
   renderComposer,
   inputToolbarProps,
   customConversationInfo,
+  customImageVideoBubbleProps,
   sendMessageNotification,
   timeoutSendNotification = 0,
   ...props
@@ -76,10 +89,15 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
   const firebaseInstance = useRef(FirestoreServices.getInstance()).current;
   const [messagesList, setMessagesList] = useState<MessageProps[]>([]);
   const [hasMoreMessages, setHasMoreMessages] = useState(false);
+
   const isLoadingRef = useRef(false);
   const cameraViewRef = useRef<CameraViewRef>(null);
-  const [isImgVideoUrl, setImgVideoUrl] = useState('');
+  const fileAttachmentRef = useRef<FileAttachmentModalRef>(null);
+
   const { hasPermission, requestPermission } = useCameraPermission();
+  const [selectedMessage, setSelectedMessage] = useState<MessageProps | null>(
+    null
+  );
   const timeoutMessageRef = useRef<NodeJS.Timeout | null>(null);
 
   const conversationRef = useRef<ConversationProps | undefined>(
@@ -231,6 +249,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
           hasCamera={props.hasCamera}
           hasGallery={props.hasGallery}
           {...inputToolbarProps}
+          documentRef={fileAttachmentRef.current}
         />
       );
     },
@@ -246,29 +265,12 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
 
   const renderBubble = (bubble: Bubble<MessageProps>['props']) => {
     if (props.renderBubble) return props.renderBubble(bubble);
-    const imageUrl = bubble.currentMessage?.path;
-    if (!imageUrl) {
-      return <Bubble {...bubble} />;
-    }
-
-    const styleBuble = {
-      left: { backgroundColor: 'transparent' },
-      right: { backgroundColor: 'transparent' },
-    };
-
     return (
-      <Bubble
-        {...bubble}
-        renderCustomView={() =>
-          bubble.currentMessage && (
-            <CustomImageVideoBubble
-              message={bubble.currentMessage}
-              position={bubble.position}
-              selectedImgVideoUrl={(url) => setImgVideoUrl(url)}
-            />
-          )
-        }
-        wrapperStyle={styleBuble}
+      <CustomBubble
+        bubbleMessage={bubble}
+        onSelectedMessage={setSelectedMessage}
+        customImageVideoBubbleProps={customImageVideoBubbleProps}
+        position={bubble.position}
       />
     );
   };
@@ -293,11 +295,16 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
           {...props}
         />
       </KeyboardAvoidingView>
-      <SelectedImageModal
-        imageUrl={isImgVideoUrl}
-        onClose={() => setImgVideoUrl('')}
+      <SelectedBubbleModal
+        message={selectedMessage}
+        onClose={() => setSelectedMessage(null)}
       />
       <CameraView onSend={onSend} userInfo={userInfo} ref={cameraViewRef} />
+      <FileAttachmentModal
+        userInfo={userInfo}
+        ref={fileAttachmentRef}
+        onSend={onSend}
+      />
     </View>
   );
 };

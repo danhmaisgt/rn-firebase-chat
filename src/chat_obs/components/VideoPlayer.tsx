@@ -61,13 +61,13 @@ const VideoPlayer: React.FC<VideoPlayerProps> = ({ videoUri }) => {
         onProgress={handleProgress}
         resizeMode="contain"
       />
-      <TouchableOpacity style={styles.overlayButton} onPress={togglePlayPause}>
-        <Image
-          source={paused ? ImageAssets.playIcon : ImageAssets.pauseIcon}
-          style={styles.image}
-        />
-      </TouchableOpacity>
       <View style={styles.controls}>
+        <TouchableOpacity onPress={togglePlayPause}>
+          <Image
+            source={paused ? ImageAssets.playIcon : ImageAssets.pauseIcon}
+            style={styles.image}
+          />
+        </TouchableOpacity>
         <Text style={styles.time}>{formatTime(currentTime)}</Text>
         <Slider
           style={styles.slider}
@@ -98,13 +98,6 @@ const styles = StyleSheet.create({
     width: width,
     height: height,
   },
-  overlayButton: {
-    position: 'absolute',
-    top: '50%',
-    left: '50%',
-    transform: [{ translateX: -25 }, { translateY: -25 }],
-    zIndex: 1,
-  },
   controls: {
     position: 'absolute',
     bottom: 10,
@@ -121,8 +114,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   image: {
-    width: 30,
-    height: 30,
+    width: 25,
+    height: 25,
     tintColor: 'white',
   },
 });
