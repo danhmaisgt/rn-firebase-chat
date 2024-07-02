@@ -9,6 +9,7 @@ import {
   formatMessageData,
   formatSendMessage,
   generateKey,
+  getMediaTypeFromExtension,
 } from '../../utilities';
 import {
   ConversationProps,
@@ -478,7 +479,7 @@ export class FirestoreServices {
     const fileURLs: MediaFile[] = await Promise.all(filePromises);
 
     return fileURLs;
-  }
+  };
 
   listenConversationDelete = (callback: (id: string) => void) => {
     firestore()
