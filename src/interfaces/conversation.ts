@@ -9,6 +9,12 @@ interface MemberProps {
   [userId: string]: FirebaseFirestoreTypes.DocumentReference;
 }
 
+interface CustomConversationInfo {
+  id: string;
+  name?: string;
+  image?: string;
+}
+
 interface ConversationProps extends BaseEntity {
   latestMessage?: LatestMessageProps;
   updatedAt: number;
@@ -49,4 +55,5 @@ export {
   MessageTypes,
   MessageStatus,
   MediaFile,
+  CustomConversationInfo,
 };

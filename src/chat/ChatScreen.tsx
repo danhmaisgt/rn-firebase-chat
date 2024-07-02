@@ -11,19 +11,30 @@ import {
   StyleSheet,
   View,
   type ViewStyle,
+  Keyboard,
 } from 'react-native';
 import {
   type ComposerProps,
   GiftedChat,
   type GiftedChatProps,
+  Bubble,
 } from 'react-native-gifted-chat';
 import TypingIndicator from 'react-native-gifted-chat/lib/TypingIndicator';
 import { FirestoreServices } from '../services/firebase';
 import { useChatContext, useChatSelector } from '../hooks';
-import type { ConversationProps, IUserInfo, MessageProps } from '../interfaces';
+import type {
+  ConversationProps,
+  CustomConversationInfo,
+  IUserInfo,
+  MessageProps,
+} from '../interfaces';
 import { formatMessageData } from '../utilities';
 import { getConversation } from '../reducer/selectors';
 import InputToolbar, { IInputToolbar } from './components/InputToolbar';
+import { CustomImageVideoBubble } from './components/CustomImageVideoBubble';
+import { CameraView, CameraViewRef } from '../chat_obs/components/CameraView';
+import SelectedImageModal from './components/SelectedImage';
+import { useCameraPermission } from 'react-native-vision-camera';
 
 interface ChatScreenProps extends GiftedChatProps {
   style?: StyleProp<ViewStyle>;
@@ -34,6 +45,11 @@ interface ChatScreenProps extends GiftedChatProps {
   maxPageSize?: number;
   inputToolbarProps?: IInputToolbar;
   hasCamera?: boolean;
+  hasGallery?: boolean;
+  onPressCamera?: () => void;
+  customConversationInfo?: CustomConversationInfo;
+  sendMessageNotification?: () => void;
+  timeoutSendNotification?: number;
 }
 
 export const ChatScreen: React.FC<ChatScreenProps> = ({
@@ -45,6 +61,9 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
   maxPageSize = 20,
   renderComposer,
   inputToolbarProps,
+  customConversationInfo,
+  sendMessageNotification,
+  timeoutSendNotification = 0,
   ...props
 }) => {
   const { userInfo } = useChatContext();
@@ -58,6 +77,10 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
   const [messagesList, setMessagesList] = useState<MessageProps[]>([]);
   const [hasMoreMessages, setHasMoreMessages] = useState(false);
   const isLoadingRef = useRef(false);
+  const cameraViewRef = useRef<CameraViewRef>(null);
+  const [isImgVideoUrl, setImgVideoUrl] = useState('');
+  const { hasPermission, requestPermission } = useCameraPermission();
+  const timeoutMessageRef = useRef<NodeJS.Timeout | null>(null);
 
   const conversationRef = useRef<ConversationProps | undefined>(
     conversationInfo
@@ -95,9 +118,10 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
       isLoadingRef.current = false;
       if (!conversationRef.current?.id) {
         conversationRef.current = await firebaseInstance.createConversation(
+          customConversationInfo?.id || '',
           memberIds,
-          partners[0]?.name,
-          partners[0]?.avatar
+          customConversationInfo?.name || partners[0]?.name,
+          customConversationInfo?.image || partners[0]?.avatar
         );
         firebaseInstance.setConversationInfo(
           conversationRef.current?.id,
@@ -110,9 +134,23 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
         GiftedChat.append(previousMessages, [messages])
       );
 
-      await firebaseInstance.sendMessage(messages.text);
+      await firebaseInstance.sendMessage(messages);
+
+      timeoutMessageRef.current = setTimeout(() => {
+        sendMessageNotification?.();
+        if (timeoutMessageRef.current) {
+          clearTimeout(timeoutMessageRef.current);
+        }
+      }, timeoutSendNotification);
     },
-    [firebaseInstance, memberIds, partners]
+    [
+      firebaseInstance,
+      sendMessageNotification,
+      customConversationInfo,
+      memberIds,
+      partners,
+      timeoutSendNotification,
+    ]
   );
 
   const onLoadEarlier = useCallback(async () => {
@@ -139,10 +177,15 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
 
   useEffect(() => {
     let receiveMessageRef: () => void;
+    const currentTime = Date.now();
     if (conversationRef.current?.id) {
       receiveMessageRef = firebaseInstance.receiveMessageListener(
         (message: MessageProps) => {
-          if (userInfo && message.senderId !== userInfo.id) {
+          if (
+            userInfo &&
+            message.senderId !== userInfo.id &&
+            message.createdAt >= new Date(currentTime)
+          ) {
             const userInfoIncomming = {
               id: message.id,
               name: message.senderId,
@@ -163,19 +206,72 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
     };
   }, [firebaseInstance, userInfo, conversationRef.current?.id]);
 
+  const onPressCamera = useCallback(() => {
+    if (props.onPressCamera) return props.onPressCamera();
+    if (!hasPermission) {
+      requestPermission();
+      return;
+    }
+    if (Keyboard.isVisible()) {
+      Keyboard.dismiss();
+      return;
+    }
+
+    cameraViewRef.current?.show();
+  }, [hasPermission, props, requestPermission]);
+
   const inputToolbar = useCallback(
     (composeProps: ComposerProps) => {
       if (renderComposer) return renderComposer(composeProps);
       return (
         <InputToolbar
+          onPressCamera={onPressCamera}
+          onSend={onSend}
           {...composeProps}
           hasCamera={props.hasCamera}
+          hasGallery={props.hasGallery}
           {...inputToolbarProps}
         />
       );
     },
-    [props.hasCamera, renderComposer, inputToolbarProps]
+    [
+      renderComposer,
+      onPressCamera,
+      onSend,
+      props.hasCamera,
+      props.hasGallery,
+      inputToolbarProps,
+    ]
   );
+
+  const renderBubble = (bubble: Bubble<MessageProps>['props']) => {
+    if (props.renderBubble) return props.renderBubble(bubble);
+    const imageUrl = bubble.currentMessage?.path;
+    if (!imageUrl) {
+      return <Bubble {...bubble} />;
+    }
+
+    const styleBuble = {
+      left: { backgroundColor: 'transparent' },
+      right: { backgroundColor: 'transparent' },
+    };
+
+    return (
+      <Bubble
+        {...bubble}
+        renderCustomView={() =>
+          bubble.currentMessage && (
+            <CustomImageVideoBubble
+              message={bubble.currentMessage}
+              position={bubble.position}
+              selectedImgVideoUrl={(url) => setImgVideoUrl(url)}
+            />
+          )
+        }
+        wrapperStyle={styleBuble}
+      />
+    );
+  };
 
   return (
     <View style={[styles.container, style]}>
@@ -187,15 +283,21 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
             _id: userInfo?.id || '',
             ...userInfo,
           }}
-          keyboardShouldPersistTaps={'always'}
+          keyboardShouldPersistTaps={'never'}
           infiniteScroll
           loadEarlier={hasMoreMessages}
           renderChatFooter={() => <TypingIndicator />}
           onLoadEarlier={onLoadEarlier}
           renderComposer={inputToolbar}
+          renderBubble={renderBubble}
           {...props}
         />
       </KeyboardAvoidingView>
+      <SelectedImageModal
+        imageUrl={isImgVideoUrl}
+        onClose={() => setImgVideoUrl('')}
+      />
+      <CameraView onSend={onSend} userInfo={userInfo} ref={cameraViewRef} />
     </View>
   );
 };
