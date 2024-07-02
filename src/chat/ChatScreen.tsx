@@ -54,6 +54,8 @@ interface ChatScreenProps extends GiftedChatProps {
   onPressCamera?: () => void;
   customConversationInfo?: CustomConversationInfo;
   customImageVideoBubbleProps: CustomImageVideoBubbleProps;
+  sendMessageNotification?: () => void;
+  timeoutSendNotification?: number;
 }
 
 export const ChatScreen: React.FC<ChatScreenProps> = ({
@@ -67,6 +69,8 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
   inputToolbarProps,
   customConversationInfo,
   customImageVideoBubbleProps,
+  sendMessageNotification,
+  timeoutSendNotification = 0,
   ...props
 }) => {
   const { userInfo } = useChatContext();
@@ -88,6 +92,7 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
   const [selectedMessage, setSelectedMessage] = useState<MessageProps | null>(
     null
   );
+  const timeoutMessageRef = useRef<NodeJS.Timeout | null>(null);
 
   const conversationRef = useRef<ConversationProps | undefined>(
     conversationInfo
@@ -142,8 +147,22 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
       );
 
       await firebaseInstance.sendMessage(messages);
+
+      timeoutMessageRef.current = setTimeout(() => {
+        sendMessageNotification?.();
+        if (timeoutMessageRef.current) {
+          clearTimeout(timeoutMessageRef.current);
+        }
+      }, timeoutSendNotification);
     },
-    [firebaseInstance, customConversationInfo, memberIds, partners]
+    [
+      firebaseInstance,
+      sendMessageNotification,
+      customConversationInfo,
+      memberIds,
+      partners,
+      timeoutSendNotification,
+    ]
   );
 
   const onLoadEarlier = useCallback(async () => {
@@ -170,10 +189,15 @@ export const ChatScreen: React.FC<ChatScreenProps> = ({
 
   useEffect(() => {
     let receiveMessageRef: () => void;
+    const currentTime = Date.now();
     if (conversationRef.current?.id) {
       receiveMessageRef = firebaseInstance.receiveMessageListener(
         (message: MessageProps) => {
-          if (userInfo && message.senderId !== userInfo.id) {
+          if (
+            userInfo &&
+            message.senderId !== userInfo.id &&
+            message.createdAt >= new Date(currentTime)
+          ) {
             const userInfoIncomming = {
               id: message.id,
               name: message.senderId,

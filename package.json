@@ -156,6 +156,7 @@
     "react-native-document-picker": "^9.3.0",
     "react-native-fast-image": "^8.6.3",
     "react-native-fs": "^2.20.0",
+    "react-native-get-random-values": "^1.11.0",
     "react-native-gifted-chat": "^2.4.0",
     "react-native-image-picker": "^7.1.2",
     "react-native-uuid": "^2.0.2",
