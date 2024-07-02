@@ -23,10 +23,6 @@ import TypingIndicator from 'react-native-gifted-chat/lib/TypingIndicator';
 import { FirestoreServices } from '../services/firebase';
 import { useChatContext, useChatSelector } from '../hooks';
 
-import { formatMessageData } from '../utilities';
-import { getConversation } from '../reducer/selectors';
-import InputToolbar, { IInputToolbar } from './components/InputToolbar';
-import { CameraView, CameraViewRef } from '../chat_obs/components/CameraView';
 import SelectedBubbleModal from './components/SelectedBubbleModal';
 import FileAttachmentModal, {
   FileAttachmentModalRef,
@@ -40,9 +36,7 @@ import type {
 import { formatMessageData } from '../utilities';
 import { getConversation } from '../reducer/selectors';
 import InputToolbar, { IInputToolbar } from './components/InputToolbar';
-import { CustomImageVideoBubble } from './components/CustomImageVideoBubble';
 import { CameraView, CameraViewRef } from '../chat_obs/components/CameraView';
-import SelectedImageModal from './components/SelectedImage';
 import { useCameraPermission } from 'react-native-vision-camera';
 import type { CustomImageVideoBubbleProps } from './components/bubble/CustomImageVideoBubble';
 import { CustomBubble } from './components/bubble';

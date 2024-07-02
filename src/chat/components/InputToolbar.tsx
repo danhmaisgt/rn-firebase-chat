@@ -51,7 +51,6 @@ export interface IInputToolbar extends InputToolbarProps<any>, SendProps<any> {
     documentRef: FileAttachmentModalRef | null;
   }) => React.ReactNode;
   libraryOptions?: ImageLibraryOptions;
-  renderLeftCustomView?: () => React.ReactNode;
   renderRightCustomView?: () => React.ReactNode;
   documentRef: FileAttachmentModalRef | null;
 }
