@@ -9,10 +9,12 @@ import {
   formatMessageData,
   formatSendMessage,
   generateKey,
+  getMediaTypeFromExtension,
 } from '../../utilities';
 import {
   ConversationProps,
   FireStoreCollection,
+  MediaFile,
   FirestoreReference,
   MessageTypes,
   type IUserInfo,
@@ -460,5 +462,95 @@ export class FirestoreServices {
           });
         }
       });
+  };
+
+  getMediaFilesByConversationId = async (): Promise<MediaFile[]> => {
+    if (!this.conversationId) {
+      throw new Error(
+        'Please create conversation before sending the first message!'
+      );
+    }
+
+    const listRef = storage().ref(this.conversationId);
+    const result = await listRef.listAll();
+
+    const filePromises = result.items.map(async (fileRef) => {
+      const filePath = await fileRef.getDownloadURL();
+      const id = fileRef.name?.split('.')[0];
+      return {
+        id: id || new Date().getTime().toString(),
+        path: filePath,
+        type: getMediaTypeFromExtension(fileRef.name),
+      };
+    });
+    const fileURLs: MediaFile[] = await Promise.all(filePromises);
+
+    return fileURLs;
+  };
+
+  listenConversationDelete = (callback: (id: string) => void) => {
+    firestore()
+      .collection(
+        `${FireStoreCollection.users}/${this.userId}/${FireStoreCollection.conversations}`
+      )
+      .onSnapshot(function (snapshot) {
+        if (snapshot) {
+          snapshot.docChanges().forEach(function (change) {
+            if (change.type === 'removed') {
+              callback?.(change.doc.id);
+            }
+          });
+        }
+      });
+  };
+
+  checkConversationExist = async (id: string) => {
+    const conversation = await firestore()
+      .collection(
+        `${FireStoreCollection.users}/${this.userId}/${FireStoreCollection.conversations}`
+      )
+      .doc(id)
+      .get();
+
+    return conversation?.exists;
+  };
+
+  /**
+   * delete conversation from list
+   * @param softDelete indicates whether to completely remove conversation or simply remove from user's list
+   */
+  deleteConversation = async (
+    conversationId: string,
+    softDelete?: boolean
+  ): Promise<boolean> => {
+    try {
+      const isConversationExist = await this.checkConversationExist(
+        conversationId
+      );
+      if (!isConversationExist) return false;
+
+      await firestore()
+        .collection(
+          `${FireStoreCollection.users}/${this.userId}/${FireStoreCollection.conversations}`
+        )
+        .doc(conversationId)
+        .delete();
+      if (softDelete) return true;
+
+      const batch = firestore().batch();
+      const collectionRef = firestore()
+        .collection(`${FireStoreCollection.conversations}`)
+        .doc(conversationId);
+      const messages = await collectionRef
+        .collection(FireStoreCollection.messages)
+        .get();
+      messages.forEach((message) => batch.delete(message.ref));
+
+      await batch.commit();
+      await collectionRef.delete();
+      return true;
+    } catch (e) {
+      return false;
+    }
   };
 }
