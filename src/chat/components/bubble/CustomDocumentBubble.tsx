@@ -84,7 +84,7 @@ export const CustomDocumentBubble: React.FC<CustomDocumentBubbleProps> = ({
         }
       }
 
-      FileViewer.open(downloadDest + `.${message.extension}`, {
+      FileViewer.open(downloadDest, {
         displayName: message.name,
       }).catch((error) => {
         if (error) {
