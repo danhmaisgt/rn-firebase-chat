@@ -15,7 +15,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import type { MessageProps } from '../../../interfaces';
-import OpenFile from 'react-native-doc-viewer';
+import FileViewer from 'react-native-file-viewer';
 import RNFS from 'react-native-fs';
 
 export interface CustomDocumentBubbleProps {
@@ -84,24 +84,33 @@ export const CustomDocumentBubble: React.FC<CustomDocumentBubbleProps> = ({
         }
       }
 
-      OpenFile.openDoc(
-        [
-          {
-            url: downloadDest,
-            fileNameOptional: message.name,
-            fileName: message.name,
-            fileType: message.type,
-            cache: true,
-          },
-        ],
-        (error_, url) => {
-          console.log('url: ', url);
-          if (error_) {
-            Alert.alert('Error', 'Failed to open document');
-          }
-          setLoading(false);
+      FileViewer.open(downloadDest + `.${message.extension}`, {
+        displayName: message.name,
+      }).catch((error) => {
+        if (error) {
+          Alert.alert('Error', 'Failed to open document');
         }
-      );
+        setLoading(false);
+      });
+
+      // OpenFile.openDoc(
+      //   [
+      //     {
+      //       url: downloadDest,
+      //       fileNameOptional: message.name,
+      //       fileName: message.name,
+      //       fileType: message.type,
+      //       cache: true,
+      //     },
+      //   ],
+      //   (error_, url) => {
+      //     console.log('url: ', url);
+      //     if (error_) {
+      //       Alert.alert('Error', 'Failed to open document');
+      //     }
+      //     setLoading(false);
+      //   }
+      // );
     } catch (err) {
       Alert.alert('Error', 'Failed to download document');
       setLoading(false);

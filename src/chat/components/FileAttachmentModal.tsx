@@ -132,12 +132,12 @@ const FileAttachmentModal = forwardRef<
       if (media) {
         onSendMessage(media);
       } else {
-        Alert.alert('Error', 'Something wrong.Please try again');
+        Alert.alert('Error', 'Something wrong. Please try again');
       }
       setModalVisible(false);
     } catch (err) {
       if (DocumentPicker.isCancel(err)) {
-        Alert.alert('Warning', 'Document Picker was cancelled');
+        // Alert.alert('Warning', 'Document Picker was cancelled');
       } else {
         throw err;
       }
