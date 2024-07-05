@@ -1,6 +1,6 @@
 {
   "name": "rn-firebase-chat",
-  "version": "0.1.0",
+  "version": "0.1.2",
   "description": "test",
   "main": "src/index.ts",
   "types": "lib/typescript/index.d.ts",
@@ -15,6 +15,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint \"**/*.{js,ts,tsx}\"",
     "prepack": "bob build",
+    "prepare": "bob build",
     "release": "release-it",
     "example": "yarn --cwd example",
     "bootstrap": "yarn example && yarn install && yarn example pods"
@@ -143,11 +144,25 @@
     ]
   },
   "dependencies": {
-    "@react-native-firebase/app": "^18.6.1",
-    "@react-native-firebase/firestore": "^18.6.1",
-    "@react-native-firebase/storage": "^18.6.1",
+    "@react-native-community/slider": "^4.5.2",
+    "@react-native-firebase/app": "^20.1.0",
+    "@react-native-firebase/firestore": "^20.1.0",
+    "@react-native-firebase/storage": "^20.1.0",
+    "@types/react-native-doc-viewer": "^2.7.6",
+    "@types/uuid": "^9.0.8",
     "randomcolor": "^0.6.2",
     "react-native-aes-crypto": "^2.1.1",
-    "react-native-gifted-chat": "^2.4.0"
+    "react-native-audio-recorder-player": "3.6.4",
+    "react-native-doc-viewer": "^2.7.8",
+    "react-native-document-picker": "^9.3.0",
+    "react-native-fast-image": "^8.6.3",
+    "react-native-fs": "^2.20.0",
+    "react-native-gifted-chat": "^2.4.0",
+    "react-native-image-picker": "^7.1.2",
+    "react-native-svg": "^15.3.0",
+    "react-native-uuid": "^2.0.2",
+    "react-native-video": "^6.2.0",
+    "react-native-vision-camera": "^4.1.0",
+    "uuid": "^10.0.0"
   }
 }

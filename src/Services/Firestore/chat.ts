@@ -9,7 +9,7 @@ import {
   formatEncryptedMessageData,
   formatMessageData,
   generateKey,
-} from '../../Utilities';
+} from '../../utilities';
 import type {
   ConversationProps,
   MemberProps,

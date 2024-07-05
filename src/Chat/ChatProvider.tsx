@@ -9,7 +9,7 @@ import {
 import { GiftedChat, GiftedChatProps } from 'react-native-gifted-chat';
 import { FirestoreServices } from '../Services/Firestore';
 // import CustomMessageView from './Component/CustomMessageView';
-import { formatEncryptedMessageData, formatMessageData } from '../Utilities';
+import { formatEncryptedMessageData, formatMessageData } from '../utilities';
 import TypingIndicator from 'react-native-gifted-chat/lib/TypingIndicator';
 // import { PhotoGalleryView } from './Component/PhotoGalleryView';
 import { TYPING_TIMEOUT_SECONDS } from './constanst';
