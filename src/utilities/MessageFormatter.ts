@@ -12,16 +12,17 @@ import {
   MessageTypes,
 } from '../interfaces';
 import type { Asset } from 'react-native-image-picker';
+import { getCurrentTimestamp } from './Date';
 
 const formatMessageData = (message: MessageProps, userInfo: IUserInfo) => {
   return {
     ...message,
-    _id: message.id,
-    createdAt: message.createdAt || Date.now(),
+    _id: message?.id,
+    createdAt: message.createdAt || getCurrentTimestamp(),
     user: {
-      _id: userInfo.id,
-      name: userInfo.name,
-      avatar: userInfo.avatar,
+      _id: userInfo?.id || '000',
+      name: userInfo?.name || 'Unknown user',
+      avatar: userInfo?.avatar,
     },
   };
 };
@@ -81,7 +82,7 @@ const formatSendMessage = (
   },
   status: MessageStatus.sent,
   senderId: userId,
-  createdAt: Date.now(),
+  createdAt: getCurrentTimestamp(),
   text: text ?? '',
   type: type ?? MessageTypes.text,
   path: path ?? '',

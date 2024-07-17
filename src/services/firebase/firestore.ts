@@ -9,6 +9,7 @@ import {
   formatMessageData,
   formatSendMessage,
   generateKey,
+  getCurrentTimestamp,
 } from '../../utilities';
 import {
   ConversationProps,
@@ -114,7 +115,7 @@ export class FirestoreServices {
     let conversationData: Partial<ConversationProps> = {
       members: [this.userId, ...memberIds],
       name,
-      updatedAt: Date.now(),
+      updatedAt: getCurrentTimestamp(),
     };
 
     if (image) {
@@ -269,12 +270,12 @@ export class FirestoreServices {
         conversationName
           ? {
               latestMessage: latestMessageData,
-              updatedAt: Date.now(),
+              updatedAt: getCurrentTimestamp(),
               name: conversationName,
             }
           : {
               latestMessage: latestMessageData,
-              updatedAt: Date.now(),
+              updatedAt: getCurrentTimestamp(),
             },
         { merge: true }
       )
@@ -411,11 +412,14 @@ export class FirestoreServices {
       .collection<MessageProps>(
         `${FireStoreCollection.conversations}/${this.conversationId}/${FireStoreCollection.messages}`
       )
+      .where('createdAt', '>', getCurrentTimestamp())
       .onSnapshot((snapshot) => {
         if (snapshot) {
           snapshot.docChanges().forEach((change) => {
+            const message = change.doc.data();
+            message.id = change.doc.id;
             if (change.type === 'added') {
-              callBack({ ...change.doc.data(), id: change.doc.id });
+              callBack(message);
             }
           });
         }
@@ -555,7 +559,7 @@ export class FirestoreServices {
    */
   deleteConversation = async (
     conversationId: string,
-    softDelete?: boolean
+    partnersId?: string[]
   ): Promise<boolean> => {
     try {
       const isConversationExist = await this.checkConversationExist(
@@ -569,8 +573,21 @@ export class FirestoreServices {
         )
         .doc(conversationId)
         .delete();
-      if (softDelete) return true;
+      if (!partnersId?.length) return true;
 
+      // If !partnersId, simply remove conversation on user side
+      // If partnersId, delete all conversations of each partners
+      const partnerBatch = firestore().batch();
+      partnersId.forEach(async (id) => {
+        const doc = firestore()
+          .collection(
+            `${FireStoreCollection.users}/${id}/${FireStoreCollection.conversations}`
+          )
+          .doc(conversationId);
+        partnerBatch.delete(doc);
+      });
+
+      // Delete all messages of that conversation
       const batch = firestore().batch();
       const collectionRef = firestore()
         .collection(`${FireStoreCollection.conversations}`)
@@ -578,10 +595,52 @@ export class FirestoreServices {
       const messages = await collectionRef
         .collection(FireStoreCollection.messages)
         .get();
-      messages.forEach((message) => batch.delete(message.ref));
+      messages?.forEach((message) => batch.delete(message.ref));
 
+      await partnerBatch.commit();
       await batch.commit();
       await collectionRef.delete();
+      return true;
+    } catch (e) {
+      return false;
+    }
+  };
+
+  leaveConversation = async (conversationId: string): Promise<boolean> => {
+    try {
+      const isConversationExist = await this.checkConversationExist(
+        conversationId
+      );
+      if (!isConversationExist) return false;
+
+      const leftConversation = firestore()
+        .collection(
+          `${FireStoreCollection.users}/${this.userId}/${FireStoreCollection.conversations}`
+        )
+        .doc(conversationId);
+
+      const newMembers = (
+        (await leftConversation.get()).data() as ConversationProps
+      ).members?.filter((e) => e !== this.userId);
+
+      const batch = firestore().batch();
+      newMembers?.forEach((id) => {
+        const doc = firestore()
+          .collection(
+            `${FireStoreCollection.users}/${id}/${FireStoreCollection.conversations}`
+          )
+          .doc(conversationId);
+        batch.set(
+          doc,
+          {
+            members: newMembers,
+          },
+          { merge: true }
+        );
+      });
+      await leftConversation.delete();
+      await batch.commit();
+
       return true;
     } catch (e) {
       return false;

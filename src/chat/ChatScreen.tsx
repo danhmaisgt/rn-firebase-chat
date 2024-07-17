@@ -55,6 +55,7 @@ interface ConversationData {
   unRead?: { [key: string]: number };
   typing?: { [key: string]: boolean };
 }
+
 interface ChatScreenProps extends GiftedChatProps {
   style?: StyleProp<ViewStyle>;
   memberIds: string[];
