@@ -1,5 +1,6 @@
 import React, {
   forwardRef,
+  ReactNode,
   useCallback,
   useEffect,
   useImperativeHandle,
@@ -74,7 +75,10 @@ interface ChatScreenProps extends GiftedChatProps {
   sendMessageNotification?: () => void;
   timeoutSendNotification?: number;
   customImageVideoBubbleProps?: CustomImageVideoBubbleProps;
-  onCallBubblePress?: (ref: FirebaseFirestoreTypes.DocumentReference) => void;
+  extraCustomBubbleKey?: string;
+  renderExtraCustomBubble?(
+    props: Bubble<MessageProps>['props']
+  ): React.ReactNode;
 }
 
 export const ChatScreen = forwardRef<ChatScreenRef, ChatScreenProps>(
@@ -92,7 +96,8 @@ export const ChatScreen = forwardRef<ChatScreenRef, ChatScreenProps>(
       sendMessageNotification,
       timeoutSendNotification = 0,
       customImageVideoBubbleProps,
-      onCallBubblePress,
+      extraCustomBubbleKey,
+      renderExtraCustomBubble,
       ...props
     },
     ref
@@ -312,7 +317,8 @@ export const ChatScreen = forwardRef<ChatScreenRef, ChatScreenProps>(
           isCurrentlyPlaying={
             currentPlayingMessageId === bubble.currentMessage?.id
           }
-          onCallBubblePress={onCallBubblePress}
+          extraCustomBubbleKey={extraCustomBubbleKey}
+          renderExtraCustomBubble={renderExtraCustomBubble}
         />
       );
     };

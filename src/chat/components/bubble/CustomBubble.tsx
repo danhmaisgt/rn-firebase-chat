@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { ReactNode, useRef } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { MessageTypes, type MessageProps } from '../../../interfaces';
 import {
@@ -14,8 +14,6 @@ import {
 import { CustomDocumentBubble } from './CustomDocumentBubble';
 import { FirestoreServices } from '../../../services/firebase';
 import { CustomBubbleVoice } from './CustomBubbleVoice';
-import { CustomGroupCallBubble } from './CustomGroupCallBubble';
-import { FirebaseFirestoreTypes } from '@react-native-firebase/firestore';
 
 interface CustomBubbleProps {
   bubbleMessage: Bubble<MessageProps>['props'];
@@ -24,7 +22,10 @@ interface CustomBubbleProps {
   onSelectedMessage: (message: MessageProps) => void;
   onSetCurrentId: (id: string) => void;
   isCurrentlyPlaying: boolean;
-  onCallBubblePress?: (ref: FirebaseFirestoreTypes.DocumentReference) => void;
+  extraCustomBubbleKey?: string;
+  renderExtraCustomBubble?(
+    props: Bubble<MessageProps>['props']
+  ): React.ReactNode;
 }
 
 export const CustomBubble: React.FC<CustomBubbleProps> = ({
@@ -33,7 +34,8 @@ export const CustomBubble: React.FC<CustomBubbleProps> = ({
   customImageVideoBubbleProps,
   onSelectedMessage,
   onSetCurrentId,
-  onCallBubblePress,
+  extraCustomBubbleKey,
+  renderExtraCustomBubble,
   isCurrentlyPlaying,
 }) => {
   const firebaseInstance = useRef(FirestoreServices.getInstance()).current;
@@ -67,6 +69,14 @@ export const CustomBubble: React.FC<CustomBubbleProps> = ({
   };
 
   const renderBubble = (currentMessage: MessageProps) => {
+    if (
+      extraCustomBubbleKey &&
+      renderExtraCustomBubble &&
+      currentMessage?.type?.includes(extraCustomBubbleKey)
+    ) {
+      return renderExtraCustomBubble(bubbleMessage);
+    }
+
     switch (currentMessage?.type) {
       case MessageTypes.image:
       case MessageTypes.video:
@@ -116,15 +126,6 @@ export const CustomBubble: React.FC<CustomBubbleProps> = ({
               )
             }
             wrapperStyle={styleBuble}
-          />
-        );
-      case MessageTypes.videoCall:
-      case MessageTypes.voiceCall:
-        return (
-          <CustomGroupCallBubble
-            position={position}
-            message={currentMessage}
-            onPressCallback={onCallBubblePress}
           />
         );
       default:
