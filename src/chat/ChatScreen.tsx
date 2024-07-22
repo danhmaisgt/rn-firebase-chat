@@ -48,6 +48,7 @@ import VoiceRecorderModal, {
   VoiceRecorderModalRef,
 } from './components/VoiceRecorderModal';
 import { clearConversation } from '../reducer';
+import { FirebaseFirestoreTypes } from '@react-native-firebase/firestore';
 
 export interface ChatScreenRef {
   sendMessage: (message: MessageProps) => void;
@@ -73,6 +74,7 @@ interface ChatScreenProps extends GiftedChatProps {
   sendMessageNotification?: () => void;
   timeoutSendNotification?: number;
   customImageVideoBubbleProps?: CustomImageVideoBubbleProps;
+  onCallBubblePress?: (ref: FirebaseFirestoreTypes.DocumentReference) => void;
 }
 
 export const ChatScreen = forwardRef<ChatScreenRef, ChatScreenProps>(
@@ -90,6 +92,7 @@ export const ChatScreen = forwardRef<ChatScreenRef, ChatScreenProps>(
       sendMessageNotification,
       timeoutSendNotification = 0,
       customImageVideoBubbleProps,
+      onCallBubblePress,
       ...props
     },
     ref
@@ -309,6 +312,7 @@ export const ChatScreen = forwardRef<ChatScreenRef, ChatScreenProps>(
           isCurrentlyPlaying={
             currentPlayingMessageId === bubble.currentMessage?.id
           }
+          onCallBubblePress={onCallBubblePress}
         />
       );
     };

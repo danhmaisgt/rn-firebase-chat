@@ -648,4 +648,11 @@ export class FirestoreServices {
       return false;
     }
   };
+
+  checkIsCallEnded = async (id: string): Promise<boolean> => {
+    const message = await firestore().collection('calls').doc(id).get();
+    const data = message.data();
+
+    return !!data?.participants?.length;
+  };
 }

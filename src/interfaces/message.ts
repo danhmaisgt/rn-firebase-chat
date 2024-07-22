@@ -52,6 +52,14 @@ interface SendMessageProps {
   duration?: number;
 }
 
-type MediaType = 'image' | 'video' | 'text' | 'document' | 'voice' | undefined;
+type MediaType =
+  | 'image'
+  | 'video'
+  | 'text'
+  | 'document'
+  | 'voice'
+  | 'voiceCall'
+  | 'videoCall'
+  | undefined;
 
 export { MessageProps, LatestMessageProps, SendMessageProps, MediaType };

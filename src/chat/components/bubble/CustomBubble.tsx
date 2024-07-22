@@ -14,6 +14,8 @@ import {
 import { CustomDocumentBubble } from './CustomDocumentBubble';
 import { FirestoreServices } from '../../../services/firebase';
 import { CustomBubbleVoice } from './CustomBubbleVoice';
+import { CustomGroupCallBubble } from './CustomGroupCallBubble';
+import { FirebaseFirestoreTypes } from '@react-native-firebase/firestore';
 
 interface CustomBubbleProps {
   bubbleMessage: Bubble<MessageProps>['props'];
@@ -22,6 +24,7 @@ interface CustomBubbleProps {
   onSelectedMessage: (message: MessageProps) => void;
   onSetCurrentId: (id: string) => void;
   isCurrentlyPlaying: boolean;
+  onCallBubblePress?: (ref: FirebaseFirestoreTypes.DocumentReference) => void;
 }
 
 export const CustomBubble: React.FC<CustomBubbleProps> = ({
@@ -30,6 +33,7 @@ export const CustomBubble: React.FC<CustomBubbleProps> = ({
   customImageVideoBubbleProps,
   onSelectedMessage,
   onSetCurrentId,
+  onCallBubblePress,
   isCurrentlyPlaying,
 }) => {
   const firebaseInstance = useRef(FirestoreServices.getInstance()).current;
@@ -112,6 +116,15 @@ export const CustomBubble: React.FC<CustomBubbleProps> = ({
               )
             }
             wrapperStyle={styleBuble}
+          />
+        );
+      case MessageTypes.videoCall:
+      case MessageTypes.voiceCall:
+        return (
+          <CustomGroupCallBubble
+            position={position}
+            message={currentMessage}
+            onPressCallback={onCallBubblePress}
           />
         );
       default:
