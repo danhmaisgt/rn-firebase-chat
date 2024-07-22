@@ -12,7 +12,7 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import type { MessageProps } from '../../../interfaces';
-import { FirestoreServices } from 'src/services/firebase';
+import { FirestoreServices } from '../../../services/firebase';
 import firestore, {
   FirebaseFirestoreTypes,
 } from '@react-native-firebase/firestore';
