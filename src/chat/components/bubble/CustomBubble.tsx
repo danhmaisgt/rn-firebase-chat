@@ -17,6 +17,7 @@ import {
   IMessage,
   isSameDay,
   isSameUser,
+  BubbleProps,
 } from 'react-native-gifted-chat';
 import {
   CustomImageVideoBubble,
@@ -26,6 +27,10 @@ import { CustomDocumentBubble } from './CustomDocumentBubble';
 import { FirestoreServices } from '../../../services/firebase';
 import { CustomBubbleVoice } from './CustomBubbleVoice';
 import ViewUnRead from '../ViewUnRead';
+import {
+  ICustomBubbleWithLinkPreviewStyles,
+  CustomBubbleWithLinkPreview,
+} from './CustomBubbleWithLinkPreview';
 
 interface CustomBubbleProps {
   bubbleMessage: Bubble<MessageProps>['props'];
@@ -41,6 +46,12 @@ interface CustomBubbleProps {
   customTextStyle?: StyleProp<ViewStyle>;
   unReadSentMessage?: string;
   unReadSeenMessage?: string;
+  customLinkPreviewStyles?: ICustomBubbleWithLinkPreviewStyles;
+  customLinkPreview: (
+    urls: string[],
+    bubbleMessage: BubbleProps<MessageProps>
+  ) => JSX.Element;
+  enableLinkPreview: boolean;
 }
 
 export const CustomBubble: React.FC<CustomBubbleProps> = ({
@@ -57,6 +68,9 @@ export const CustomBubble: React.FC<CustomBubbleProps> = ({
   customTextStyle,
   unReadSeenMessage,
   unReadSentMessage,
+  enableLinkPreview,
+  customLinkPreview,
+  customLinkPreviewStyles,
 }) => {
   const firebaseInstance = useRef(FirestoreServices.getInstance()).current;
   const styleBuble = {
@@ -76,14 +90,26 @@ export const CustomBubble: React.FC<CustomBubbleProps> = ({
           bubbleMessage.previousMessage
         ))
     ) {
-      return <Bubble {...bubbleMessage} />;
+      return (
+        <CustomBubbleWithLinkPreview
+          bubbleMessage={bubbleMessage}
+          customBubbleWithLinkPreviewStyles={customLinkPreviewStyles}
+          customBubbleWithLinkPreview={customLinkPreview}
+          enableLinkPreview={enableLinkPreview}
+        />
+      );
     }
     return (
       <View>
         <Text style={styles.messageUsername}>
           {bubbleMessage?.currentMessage?.user?.name}
         </Text>
-        <Bubble {...bubbleMessage} />
+        <CustomBubbleWithLinkPreview
+          bubbleMessage={bubbleMessage}
+          customBubbleWithLinkPreviewStyles={customLinkPreviewStyles}
+          customBubbleWithLinkPreview={customLinkPreview}
+          enableLinkPreview={enableLinkPreview}
+        />
       </View>
     );
   };

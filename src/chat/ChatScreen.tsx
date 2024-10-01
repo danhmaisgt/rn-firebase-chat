@@ -21,6 +21,7 @@ import {
   type GiftedChatProps,
   Bubble,
   Message,
+  BubbleProps,
 } from 'react-native-gifted-chat';
 import TypingIndicator from 'react-native-gifted-chat/lib/TypingIndicator';
 import { FirestoreServices } from '../services/firebase';
@@ -50,6 +51,7 @@ import VoiceRecorderModal, {
 } from './components/VoiceRecorderModal';
 import { clearConversation } from '../reducer';
 import { DEFAULT_CLEAR_SEND_NOTIFICATION } from './constants';
+import { ICustomBubbleWithLinkPreviewStyles } from './components/bubble/CustomBubbleWithLinkPreview';
 
 export interface ChatScreenRef {
   sendMessage: (message: MessageProps) => void;
@@ -75,6 +77,12 @@ interface ChatScreenProps extends GiftedChatProps {
   unReadSentMessage?: string;
   unReadSeenMessage?: string;
   renderCallBubble?(props: Bubble<MessageProps>['props']): React.ReactNode;
+  customLinkPreviewStyles?: ICustomBubbleWithLinkPreviewStyles;
+  customLinkPreview: (
+    urls: string[],
+    bubbleMessage: BubbleProps<MessageProps>
+  ) => JSX.Element;
+  enableLinkPreview?: boolean;
 }
 
 export const ChatScreen = forwardRef<ChatScreenRef, ChatScreenProps>(
@@ -93,6 +101,9 @@ export const ChatScreen = forwardRef<ChatScreenRef, ChatScreenProps>(
       timeoutSendNotification = DEFAULT_CLEAR_SEND_NOTIFICATION,
       customImageVideoBubbleProps,
       renderCallBubble,
+      customLinkPreviewStyles,
+      customLinkPreview,
+      enableLinkPreview = true,
       ...props
     },
     ref
@@ -389,6 +400,9 @@ export const ChatScreen = forwardRef<ChatScreenRef, ChatScreenProps>(
           customTextStyle={props.customTextStyle}
           unReadSentMessage={props.unReadSentMessage}
           unReadSeenMessage={props.unReadSeenMessage}
+          customLinkPreviewStyles={customLinkPreviewStyles}
+          customLinkPreview={customLinkPreview}
+          enableLinkPreview={enableLinkPreview}
         />
       );
     };
